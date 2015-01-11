@@ -491,6 +491,9 @@ class GitFat(object):
             gitconfig_set('filter.fat.clean', 'git-fat filter-clean')
             gitconfig_set('filter.fat.smudge', 'git-fat filter-smudge')
             print('Initialized git fat')
+
+    def cmd_remote(self,args):
+
     def gen_large_blobs(self, revs, threshsize):
         """Build dict of all blobs"""
         time0 = time.time()
@@ -600,6 +603,8 @@ if __name__ == '__main__':
         fat.cmd_filter_smudge()
     elif cmd == 'init':
         fat.cmd_init()
+    elif cmd == 'remote':
+        fat.cmd_remote(sys.argv[2:])
     elif cmd == 'status':
         fat.cmd_status(sys.argv[2:])
     elif cmd == 'push':
