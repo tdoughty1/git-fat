@@ -115,11 +115,19 @@ def gitconfig_get(name, file=None):
         return gitconfig_get(name)
     else:
         return output
-def gitconfig_set(name, value, file=None):
+
+def gitconfig_set(name, value, file=None, rename=None, remove=None):
     args = ['git', 'config']
     if file is not None:
         args += ['--file', file]
-    args += [name, value]
+    if rename is not None:
+        args += ['--rename-section']
+    if remove is not None:
+        args += ['--remove-section']
+    if value is None:
+        args += [name]
+    else:
+        args += [name, value]
     p = subprocess.check_call(args)
 
 class GitFat(object):
@@ -149,6 +157,7 @@ class GitFat(object):
             sys.stderr.write('fatal: git-fat is not yet configured in this repository.\n')
             sys.stderr.write('Run "git fat init" to configure.\n')
             sys.exit(1)
+    
     def get_rsync(self):
         cfgpath   = os.path.join(self.gitroot,'.gitfat')
         remote    = gitconfig_get('rsync.remote', file=cfgpath)
@@ -493,6 +502,50 @@ class GitFat(object):
             print('Initialized git fat')
 
     def cmd_remote(self,args):
+        """Automatically generates git fat remote config file"""
+        cfgpath = os.path.join(self.gitroot,'.gitfat')
+        # For no input or show, print list
+        if not args or args[0] == 'show':
+            print('Show list of repos')
+            #TODO - Add functionality
+            return
+        # For '-v' or '--verbose', print details
+        elif args[0] == '-v' or args[0] == '--verbose':
+            print('Show detailed list of repos')
+            #TODO - Add functionality
+            return
+        # For input add
+        elif args[0] == 'add':
+            name = args[1]
+            host = args[2]
+            gitconfig_set('remote.' + name + '.host', host, file=cfgpath)
+        if '-u' in args:
+            sshuser = args[args.index('-u')+1]
+            gitconfig_set('remote.' + name + '.sshuser', sshuser, file=cfgpath)
+        if '-p' in args:
+            sshport = args[args.index('-p')+1]
+            gitconfig_set('remote.' + name + '.sshport', sshport, file=cfgpath)
+        if '-o' in args:
+            options = args[args.index('-o')+1]
+            gitconfig_set('remote.' + name + '.options', options, file=cfgpath)
+            return
+        # For input rename
+        elif args[0] == 'rename' and len(args) == 3:
+            oldName = args[1]
+            newName = args[2]
+            gitconfig_set('remote.' + oldName, 'remote.' + newName, file=cfgpath, rename=True)
+            return
+        # For input remove
+        elif args[0] == 'remove' and len(args) == 2:
+            oldName = args[1]
+            gitconfig_set('remote.' + oldName, None, file=cfgpath, remove=True)
+            return
+        # Otherwise show help:
+        print('usage: git fat remote [-v, --verbose], [-h]')
+        print('   or: git fat remote add <name> <host>  -u <sshuser> -p <sshport> -o <options>')
+        print('   or: git fat remote rename <old> <new>')
+        print('   or: git fat remote remove <old>')
+        print('   or: git fat remote show')
 
     def gen_large_blobs(self, revs, threshsize):
         """Build dict of all blobs"""
